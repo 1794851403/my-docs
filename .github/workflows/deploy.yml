@@ -6,9 +6,11 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
+      - '.github/workflows/**'
 
 permissions:
   contents: write
+  pages: write
 
 jobs:
   deploy:
@@ -31,3 +33,20 @@ jobs:
         with:
           branch: gh-pages
           folder: site
+      - name: 启用 GitHub Pages
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          API="https://api.github.com/repos/${{ github.repository }}/pages"
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" "$API")
+          if [ "$code" = "404" ]; then
+            curl -s -X POST \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              -d '{"source":{"branch":"gh-pages","path":"/"}}' "$API"
+          else
+            echo "Pages 已启用 (HTTP $code)"
+          fi
